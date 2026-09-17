@@ -7,80 +7,104 @@ import EcosystemCtaPanel, { type CtaPanelItem } from './RocketSourcersEcosystem/
 // resolve it as a module.
 const teamImageSrc = '/images/rocketsourcers-ecosystem/team.jpg'
 
+/**
+ * The Figma source is NOT a proportionally-scaling design between its
+ * 1200-1439 and 1440 breakpoints: card/circle/photo sizes stay pixel-
+ * constant, and most elements shift by a uniform +114px between the two
+ * (while three of the four cards shift by their own, different amount).
+ * Rather than stretch everything by one shared ratio, every position below
+ * is stored as a [valueAt1200, valueAt1440] pair and linearly interpolated
+ * in CSS via `interp()`, so the diagram is pixel-exact at both reference
+ * widths and reflows correctly in between — instead of the uniform
+ * percentage-scaling this section used before, which made 1200-1439
+ * render measurably smaller/more spread out than the design.
+ */
+type Interp = [number, number]
+
+function interp(pair: Interp): string {
+  const [v1200, v1440] = pair
+  const b = (v1440 - v1200) / 240
+  const a = v1200 - b * 1200
+  const aRounded = Math.round(a * 1000) / 1000
+  const bRounded = Math.round(b * 1000000) / 1000000
+  return `calc(${aRounded}px + ${bRounded} * clamp(1200px, 100cqw, 1440px))`
+}
+
 interface Feature {
   id: string
   title: string
   description: string
   ctaLabel: string
-  /** Position within the 1440x1100 design canvas, expressed as a % of that canvas. */
-  desktop: { left: number; top: number; width: number }
+  left: Interp
+  top: Interp
+  width: number
 }
 
-/**
- * All positions below are percentages of a fixed 1440x1100 design canvas
- * (derived from the supplied Figma Make "1440" breakpoint, which is pixel-
- * identical to the "1200-1439" breakpoint for every element used here).
- * Percentages scale fluidly with the component's own container width via
- * `aspect-ratio` on `.ecosystem__diagram`, instead of swapping between
- * discrete pixel-perfect snapshots per breakpoint.
- */
 const features: Feature[] = [
   {
     id: 'direct-sourcing',
     title: 'Direct sourcing',
     description: 'We vinden en benaderen professionals die niet vanzelf bij vacatures uitkomen.',
     ctaLabel: 'Meer bereik',
-    desktop: { left: 29.792, top: 12, width: 25 },
+    left: [453, 429],
+    top: [146, 132],
+    width: 360,
   },
   {
     id: 'sourcingtechnologie',
     title: 'Sourcingtechnologie',
     description: 'Technologie maakt bereik, context en opvolging schaalbaar.',
     ctaLabel: 'Betere opvolging',
-    desktop: { left: 64.514, top: 35.818, width: 23.125 },
+    left: [815, 929],
+    top: [394, 394],
+    width: 333,
   },
   {
     id: 'talentpooling',
     title: 'Talentpooling & nurturing',
     description: 'Relevant talent blijft dichtbij, ook na de search.',
     ctaLabel: 'Slimmer werken',
-    desktop: { left: 30.903, top: 64.182, width: 25 },
+    left: [478, 445],
+    top: [706, 706],
+    width: 360,
   },
   {
     id: 'data-talent-intelligence',
     title: 'Data & Talent Intelligence',
     description: 'Iedere search levert data en inzichten voor de volgende search.',
     ctaLabel: 'Meer inzicht',
-    desktop: { left: 5.556, top: 35.273, width: 23.125 },
+    left: [80, 80],
+    top: [388, 388],
+    width: 333,
   },
 ]
 
 interface Bubble {
   id: string
   text: string
-  left: number
-  top: number
+  left: Interp
+  top: Interp
 }
 
 const bubbles: Bubble[] = [
-  { id: 'verbinden', text: 'Verbinden met de juiste mensen', left: 66.319, top: 15 },
-  { id: 'vandaag', text: 'Vandaag contact, morgen impact', left: 67.639, top: 71.091 },
-  { id: 'van-data', text: 'Van data naar nieuwe mensen', left: 10.208, top: 71.091 },
+  { id: 'verbinden', text: 'Verbinden met de juiste mensen', left: [841, 955], top: [165, 165] },
+  { id: 'vandaag', text: 'Vandaag contact, morgen impact', left: [860, 974], top: [782, 782] },
+  { id: 'van-data', text: 'Van data naar nieuwe mensen', left: [33, 147], top: [782, 782] },
 ]
 
 interface Arrow {
   id: string
-  /** Center point, as a % of the design canvas — the arrow rotates around its own center. */
-  cx: number
-  cy: number
+  /** Center point — the arrow rotates around its own center. */
+  cx: Interp
+  cy: Interp
   rotation: number
 }
 
 /** Small curved accents pointing from an annotation bubble toward its photo cluster. */
 const arrows: Arrow[] = [
-  { id: 'van-data', cx: 20.311, cy: 65.386, rotation: 0 },
-  { id: 'verbinden', cx: 66.048, cy: 22.408, rotation: -152.13 },
-  { id: 'vandaag', cx: 66.914, cy: 77.096, rotation: -120 },
+  { id: 'van-data', cx: [178.474, 292.474], cy: [719.25, 719.25], rotation: 0 },
+  { id: 'verbinden', cx: [837.087, 951.087], cy: [246.493, 246.493], rotation: -152.13 },
+  { id: 'vandaag', cx: [849.559, 963.559], cy: [848.052, 848.052], rotation: -120 },
 ]
 
 const ARROW_PATH =
@@ -88,8 +112,8 @@ const ARROW_PATH =
 
 interface Photo {
   id: string
-  left: number
-  top: number
+  left: Interp
+  top: Interp
   width: number
   height: number
   cropLeft: number
@@ -116,39 +140,57 @@ const CROPS: Record<string, [number, number, number, number]> = {
   '16': [-0.16, -221.43, 478.62, 346.43],
 }
 
-function photo(id: string, left: number, top: number, width: number, height: number): Photo {
+function desktopPhoto(id: string, left: Interp, top: Interp, width: number, height: number): Photo {
   const [cropLeft, cropTop, cropWidth, cropHeight] = CROPS[id]!
   return { id, left, top, width, height, cropLeft, cropTop, cropWidth, cropHeight }
 }
 
+/** Canvas-absolute pixel positions at the 1200 and 1440 reference widths. */
 const desktopPhotos: Photo[] = [
-  photo('2', 27.708, 52.273, 5.278, 6.364),
-  photo('3', 62.361, 26.636, 4.236, 6.091),
-  photo('4', 25.208, 20.636, 6.389, 9.182),
-  photo('5', 68.333, 60.455, 3.125, 4.545),
-  photo('6', 71.458, 62.727, 5.625, 8.091),
-  photo('8', 77.014, 56.455, 3.819, 5.545),
-  photo('9', 24.167, 16.455, 3.395, 4.909),
-  photo('10', 20.764, 20.091, 2.778, 4),
-  photo('11', 20.764, 50.364, 6.806, 8.273),
-  photo('12', 58.889, 58.182, 3.472, 5),
-  photo('13', 67.569, 26, 6.181, 8.909),
-  photo('14', 33.75, 56.727, 3.056, 4.455),
-  photo('15', 59.444, 29.545, 3.403, 4.909),
-  photo('16', 21.806, 63.182, 5.202, 6.273),
+  desktopPhoto('2', [285, 399], [575, 575], 76, 70),
+  desktopPhoto('3', [784, 898], [293, 293], 61, 67),
+  desktopPhoto('4', [249, 363], [227, 227], 92, 101),
+  desktopPhoto('5', [870, 984], [665, 665], 45, 50),
+  desktopPhoto('6', [915, 1029], [690, 690], 81, 89),
+  desktopPhoto('8', [995, 1109], [621, 621], 55, 61),
+  desktopPhoto('9', [234, 348], [181, 181], 48.892, 54),
+  desktopPhoto('10', [185, 299], [221, 221], 40, 44),
+  desktopPhoto('11', [185, 299], [554, 554], 98, 91),
+  desktopPhoto('12', [734, 848], [640, 640], 50, 55),
+  desktopPhoto('13', [859, 973], [286, 286], 89, 98),
+  desktopPhoto('14', [372, 486], [624, 624], 44, 49),
+  desktopPhoto('15', [742, 856], [325, 325], 49, 54),
+  desktopPhoto('16', [200, 314], [695, 695], 74.914, 69),
 ]
 
-/** Positions within the compact hub-visual zone (400x380 design canvas). */
-const mobilePhotos: Photo[] = [
-  photo('2', 44.5, 79.474, 8, 7.895),
-  photo('3', 88.5, 53.947, 5.25, 6.053),
-  photo('5', 8.25, 67.895, 7.75, 8.947),
-  photo('6', 75.75, 55.263, 12.75, 14.737),
-  photo('8', 79.75, 46.316, 10.25, 11.842),
-  photo('11', 11.5, 57.895, 11.75, 11.316),
-  photo('13', 45.5, 33.421, 7.25, 8.421),
-  photo('15', 19.5, 47.632, 6.25, 7.368),
-  photo('16', 9, 50.526, 7.5, 7.368),
+interface MobilePhoto {
+  id: string
+  left: number
+  top: number
+  width: number
+  height: number
+  cropLeft: number
+  cropTop: number
+  cropWidth: number
+  cropHeight: number
+}
+
+function mobilePhoto(id: string, left: number, top: number, width: number, height: number): MobilePhoto {
+  const [cropLeft, cropTop, cropWidth, cropHeight] = CROPS[id]!
+  return { id, left, top, width, height, cropLeft, cropTop, cropWidth, cropHeight }
+}
+
+/** Positions within the compact hub-visual zone (400x380 design canvas), as % — this zone is genuinely fluid. */
+const mobilePhotos: MobilePhoto[] = [
+  mobilePhoto('2', 44.5, 79.474, 8, 7.895),
+  mobilePhoto('3', 88.5, 53.947, 5.25, 6.053),
+  mobilePhoto('5', 8.25, 67.895, 7.75, 8.947),
+  mobilePhoto('6', 75.75, 55.263, 12.75, 14.737),
+  mobilePhoto('8', 79.75, 46.316, 10.25, 11.842),
+  mobilePhoto('11', 11.5, 57.895, 11.75, 11.316),
+  mobilePhoto('13', 45.5, 33.421, 7.25, 8.421),
+  mobilePhoto('15', 19.5, 47.632, 6.25, 7.368),
+  mobilePhoto('16', 9, 50.526, 7.5, 7.368),
 ]
 
 const ctaItems: CtaPanelItem[] = [
@@ -158,7 +200,7 @@ const ctaItems: CtaPanelItem[] = [
   { id: 'insight', icon: 'pie-chart', label: 'Meer inzicht' },
 ]
 
-/** Connector line paths, in the shared 1000x1000 local coordinate space. */
+/** Connector line paths, in the shared 1000x1000 local coordinate space (unaffected by the outer shift). */
 const CONNECTOR_LINES = [
   'M626 341C636 325 616 300 625.5 284',
   'M785 508C802 495 827 478 844 487.5',
@@ -183,6 +225,14 @@ const DOT_PATHS = [
   'M641.5 739C631 722 636 700 626 685',
   'M390 487.5C407 478 432 495 449 508',
 ]
+
+/** Box (connectors + hub ring) canvas-absolute position; the box's own 1000x1000 content is fixed-size. */
+const connectorsBoxLeft: Interp = [-29, 85]
+const connectorsBoxTop: Interp = [6, 6]
+
+/** Hub circle canvas-absolute position; size is fixed (324x324) at every width. */
+const circleLeft: Interp = [435, 549]
+const circleTop: Interp = [341, 341]
 
 const emit = defineEmits<{
   'cta-click': [id: string]
@@ -214,8 +264,8 @@ onMounted(() => {
         <svg
           class="ecosystem__connectors"
           viewBox="0 0 1000 1000"
-          preserveAspectRatio="xMidYMid meet"
           aria-hidden="true"
+          :style="{ left: interp(connectorsBoxLeft), top: interp(connectorsBoxTop) }"
         >
           <defs>
             <linearGradient id="eco-ring-gradient" x1="626" x2="626" y1="304" y2="686" gradientUnits="userSpaceOnUse">
@@ -286,7 +336,7 @@ onMounted(() => {
           v-for="p in desktopPhotos"
           :key="p.id"
           class="ecosystem__photo"
-          :style="{ left: p.left + '%', top: p.top + '%', width: p.width + '%', height: p.height + '%' }"
+          :style="{ left: interp(p.left), top: interp(p.top), width: p.width + 'px', height: p.height + 'px' }"
         >
           <img
             :src="teamImageSrc"
@@ -301,7 +351,10 @@ onMounted(() => {
           >
         </div>
 
-        <div class="ecosystem__hub-copy" style="left: 38.125%; top: 31%; width: 22.5%; height: 29.455%">
+        <div
+          class="ecosystem__hub-copy"
+          :style="{ left: interp(circleLeft), top: interp(circleTop), width: '324px', height: '324px' }"
+        >
           <h2 class="ecosystem__title">RocketSourcers ecosysteem</h2>
           <p class="ecosystem__badge">Talent + relaties + kennis</p>
         </div>
@@ -310,7 +363,7 @@ onMounted(() => {
           v-for="feature in features"
           :key="feature.id"
           class="ecosystem__card-slot"
-          :style="{ left: feature.desktop.left + '%', top: feature.desktop.top + '%', width: feature.desktop.width + '%' }"
+          :style="{ left: interp(feature.left), top: interp(feature.top), width: feature.width + 'px' }"
         >
           <EcosystemFeatureCard
             :id="feature.id"
@@ -325,7 +378,7 @@ onMounted(() => {
           v-for="bubble in bubbles"
           :key="bubble.id"
           class="ecosystem__bubble"
-          :style="{ left: bubble.left + '%', top: bubble.top + '%' }"
+          :style="{ left: interp(bubble.left), top: interp(bubble.top) }"
         >
           {{ bubble.text }}
         </p>
@@ -337,8 +390,8 @@ onMounted(() => {
           viewBox="0 0 53.948 94.5917"
           aria-hidden="true"
           :style="{
-            left: arrow.cx + '%',
-            top: arrow.cy + '%',
+            left: interp(arrow.cx),
+            top: interp(arrow.cy),
             transform: `translate(-50%, -50%) rotate(${arrow.rotation}deg)`,
           }"
         >
@@ -482,22 +535,25 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
     gap: 40px;
-    padding: 48px 32px;
+    padding: 48px 8px;
   }
 
+  /*
+   * Fixed-pixel content, not a proportionally-scaling box: width tracks
+   * the container from 1200 up to 1440 (matching `interp()` on its
+   * children) and then freezes, so the diagram stays centered instead of
+   * drifting as the container keeps growing past its calibrated range.
+   */
   .ecosystem__diagram {
     position: relative;
-    width: 100%;
-    max-width: 1250px;
-    aspect-ratio: 1440 / 1100;
+    width: min(100cqw - 16px, 1440px);
+    height: 900px;
   }
 
   .ecosystem__connectors {
     position: absolute;
-    left: 5.903%;
-    top: 0.545%;
-    width: 69.444%;
-    height: 90.909%;
+    width: 1000px;
+    height: 1000px;
     overflow: visible;
   }
 
@@ -516,8 +572,8 @@ onMounted(() => {
   }
 
   .ecosystem__arrow {
-    width: 3.677%;
-    height: 8.045%;
+    width: 52.948px;
+    height: 88.5px;
     fill: #000;
     pointer-events: none;
   }
@@ -552,10 +608,6 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     gap: 48px;
-  }
-
-  .ecosystem__diagram {
-    max-width: 1000px;
   }
 
   .ecosystem__cta-slot--wide {
