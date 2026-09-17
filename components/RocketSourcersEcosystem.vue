@@ -28,6 +28,13 @@ function stepVars(left: Interp, top: Interp): Record<string, string> {
   }
 }
 
+function widthVars(width: Interp): Record<string, string> {
+  return {
+    '--w0': `${width[0]}px`,
+    '--w1': `${width[1]}px`,
+  }
+}
+
 interface Feature {
   id: string
   title: string
@@ -35,7 +42,7 @@ interface Feature {
   ctaLabel: string
   left: Interp
   top: Interp
-  width: number
+  width: Interp
 }
 
 const features: Feature[] = [
@@ -46,7 +53,7 @@ const features: Feature[] = [
     ctaLabel: 'Meer bereik',
     left: [453, 429],
     top: [146, 132],
-    width: 360,
+    width: [360, 360],
   },
   {
     id: 'sourcingtechnologie',
@@ -55,7 +62,7 @@ const features: Feature[] = [
     ctaLabel: 'Betere opvolging',
     left: [815, 929],
     top: [394, 394],
-    width: 333,
+    width: [333, 333],
   },
   {
     id: 'talentpooling',
@@ -64,7 +71,10 @@ const features: Feature[] = [
     ctaLabel: 'Slimmer werken',
     left: [478, 445],
     top: [706, 706],
-    width: 360,
+    // The 1200-1439 source has no fixed width on this one card — it hugs a
+    // 223px text column instead (223px content + 64px padding + 4px border,
+    // border-box). Only the 1440 snapshot fixes it at an explicit 360px.
+    width: [291, 360],
   },
   {
     id: 'data-talent-intelligence',
@@ -73,7 +83,7 @@ const features: Feature[] = [
     ctaLabel: 'Meer inzicht',
     left: [80, 80],
     top: [388, 388],
-    width: 333,
+    width: [333, 333],
   },
 ]
 
@@ -361,7 +371,7 @@ onMounted(() => {
           v-for="feature in features"
           :key="feature.id"
           class="ecosystem__card-slot"
-          :style="[stepVars(feature.left, feature.top), { width: feature.width + 'px' }]"
+          :style="[stepVars(feature.left, feature.top), widthVars(feature.width)]"
         >
           <EcosystemFeatureCard
             :id="feature.id"
@@ -574,6 +584,10 @@ onMounted(() => {
     top: var(--t0);
   }
 
+  .ecosystem__card-slot {
+    width: var(--w0);
+  }
+
   .ecosystem__wide .ecosystem__photo {
     left: var(--l0);
     top: var(--t0);
@@ -623,6 +637,10 @@ onMounted(() => {
   .ecosystem__wide .ecosystem__photo {
     left: var(--l1);
     top: var(--t1);
+  }
+
+  .ecosystem__card-slot {
+    width: var(--w1);
   }
 }
 
