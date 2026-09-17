@@ -8,26 +8,24 @@ import EcosystemCtaPanel, { type CtaPanelItem } from './RocketSourcersEcosystem/
 const teamImageSrc = '/images/rocketsourcers-ecosystem/team.jpg'
 
 /**
- * The Figma source is NOT a proportionally-scaling design between its
- * 1200-1439 and 1440 breakpoints: card/circle/photo sizes stay pixel-
- * constant, and most elements shift by a uniform +114px between the two
- * (while three of the four cards shift by their own, different amount).
- * Rather than stretch everything by one shared ratio, every position below
- * is stored as a [valueAt1200, valueAt1440] pair and linearly interpolated
- * in CSS via `interp()`, so the diagram is pixel-exact at both reference
- * widths and reflows correctly in between — instead of the uniform
- * percentage-scaling this section used before, which made 1200-1439
- * render measurably smaller/more spread out than the design.
+ * The Figma source renders each named breakpoint (1200-1439, 1440, ...) as
+ * its own fixed-pixel snapshot — nothing moves while the viewport is
+ * resized within one breakpoint's range; the layout only steps to a new
+ * snapshot the moment a breakpoint boundary is crossed. Every position
+ * below is stored as a [valueAt1200, valueAt1440] pair; `stepVars()` exposes
+ * both as CSS custom properties, and the stylesheet reads `--l0`/`--t0` by
+ * default and switches to `--l1`/`--t1` inside the `min-width: 1440px`
+ * container query — a snap, not a scroll-linked interpolation.
  */
 type Interp = [number, number]
 
-function interp(pair: Interp): string {
-  const [v1200, v1440] = pair
-  const b = (v1440 - v1200) / 240
-  const a = v1200 - b * 1200
-  const aRounded = Math.round(a * 1000) / 1000
-  const bRounded = Math.round(b * 1000000) / 1000000
-  return `calc(${aRounded}px + ${bRounded} * clamp(1200px, 100cqw, 1440px))`
+function stepVars(left: Interp, top: Interp): Record<string, string> {
+  return {
+    '--l0': `${left[0]}px`,
+    '--l1': `${left[1]}px`,
+    '--t0': `${top[0]}px`,
+    '--t1': `${top[1]}px`,
+  }
 }
 
 interface Feature {
@@ -265,7 +263,7 @@ onMounted(() => {
           class="ecosystem__connectors"
           viewBox="0 0 1000 1000"
           aria-hidden="true"
-          :style="{ left: interp(connectorsBoxLeft), top: interp(connectorsBoxTop) }"
+          :style="stepVars(connectorsBoxLeft, connectorsBoxTop)"
         >
           <defs>
             <linearGradient id="eco-ring-gradient" x1="626" x2="626" y1="304" y2="686" gradientUnits="userSpaceOnUse">
@@ -336,7 +334,7 @@ onMounted(() => {
           v-for="p in desktopPhotos"
           :key="p.id"
           class="ecosystem__photo"
-          :style="{ left: interp(p.left), top: interp(p.top), width: p.width + 'px', height: p.height + 'px' }"
+          :style="[stepVars(p.left, p.top), { width: p.width + 'px', height: p.height + 'px' }]"
         >
           <img
             :src="teamImageSrc"
@@ -353,7 +351,7 @@ onMounted(() => {
 
         <div
           class="ecosystem__hub-copy"
-          :style="{ left: interp(circleLeft), top: interp(circleTop), width: '324px', height: '324px' }"
+          :style="[stepVars(circleLeft, circleTop), { width: '324px', height: '324px' }]"
         >
           <h2 class="ecosystem__title">RocketSourcers ecosysteem</h2>
           <p class="ecosystem__badge">Talent + relaties + kennis</p>
@@ -363,7 +361,7 @@ onMounted(() => {
           v-for="feature in features"
           :key="feature.id"
           class="ecosystem__card-slot"
-          :style="{ left: interp(feature.left), top: interp(feature.top), width: feature.width + 'px' }"
+          :style="[stepVars(feature.left, feature.top), { width: feature.width + 'px' }]"
         >
           <EcosystemFeatureCard
             :id="feature.id"
@@ -378,7 +376,7 @@ onMounted(() => {
           v-for="bubble in bubbles"
           :key="bubble.id"
           class="ecosystem__bubble"
-          :style="{ left: interp(bubble.left), top: interp(bubble.top) }"
+          :style="stepVars(bubble.left, bubble.top)"
         >
           {{ bubble.text }}
         </p>
@@ -389,11 +387,10 @@ onMounted(() => {
           class="ecosystem__arrow"
           viewBox="0 0 53.948 94.5917"
           aria-hidden="true"
-          :style="{
-            left: interp(arrow.cx),
-            top: interp(arrow.cy),
-            transform: `translate(-50%, -50%) rotate(${arrow.rotation}deg)`,
-          }"
+          :style="[
+            stepVars(arrow.cx, arrow.cy),
+            { transform: `translate(-50%, -50%) rotate(${arrow.rotation}deg)` },
+          ]"
         >
           <path :d="ARROW_PATH" />
         </svg>
@@ -535,23 +532,27 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
     gap: 40px;
-    padding: 48px 8px;
+    padding: 48px 0;
   }
 
   /*
-   * Fixed-pixel content, not a proportionally-scaling box: width tracks
-   * the container from 1200 up to 1440 (matching `interp()` on its
-   * children) and then freezes, so the diagram stays centered instead of
-   * drifting as the container keeps growing past its calibrated range.
+   * A fixed-pixel canvas, not a proportionally-scaling box: this is the
+   * 1200-1439 snapshot's own width. It does not track the container width
+   * at all — resizing within 1200-1439 changes only the surrounding
+   * margin (via `align-items: center` on `.ecosystem__wide`), never the
+   * diagram itself. It steps to the 1440 snapshot's width in one jump at
+   * the next container-query breakpoint below.
    */
   .ecosystem__diagram {
     position: relative;
-    width: min(100cqw - 16px, 1440px);
+    width: 1200px;
     height: 900px;
   }
 
   .ecosystem__connectors {
     position: absolute;
+    left: var(--l0);
+    top: var(--t0);
     width: 1000px;
     height: 1000px;
     overflow: visible;
@@ -564,11 +565,18 @@ onMounted(() => {
     filter: drop-shadow(0 0 10px rgba(255, 183, 97, 0.45));
   }
 
-  .ecosystem__hub-copy,
+  .ecosystem__wide .ecosystem__hub-copy,
   .ecosystem__card-slot,
   .ecosystem__bubble,
   .ecosystem__arrow {
     position: absolute;
+    left: var(--l0);
+    top: var(--t0);
+  }
+
+  .ecosystem__wide .ecosystem__photo {
+    left: var(--l0);
+    top: var(--t0);
   }
 
   .ecosystem__arrow {
@@ -598,6 +606,23 @@ onMounted(() => {
     box-shadow: var(--card-shadow);
     padding: 24px;
     height: 90px;
+  }
+}
+
+/* ---------- 1440: step to the 1440 snapshot's fixed positions ---------- */
+@container ecosystem (min-width: 1440px) {
+  .ecosystem__diagram {
+    width: 1440px;
+  }
+
+  .ecosystem__connectors,
+  .ecosystem__wide .ecosystem__hub-copy,
+  .ecosystem__card-slot,
+  .ecosystem__bubble,
+  .ecosystem__arrow,
+  .ecosystem__wide .ecosystem__photo {
+    left: var(--l1);
+    top: var(--t1);
   }
 }
 
