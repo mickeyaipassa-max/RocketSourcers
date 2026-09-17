@@ -8,27 +8,32 @@ import EcosystemCtaPanel, { type CtaPanelItem } from './RocketSourcersEcosystem/
 const teamImageSrc = '/images/rocketsourcers-ecosystem/team.jpg'
 
 /**
- * The Figma source renders each named breakpoint (1200-1439, 1440, ...) as
+ * The Figma source renders each named breakpoint (1200-1439, 1440, 1600) as
  * its own fixed-pixel snapshot — nothing moves while the viewport is
  * resized within one breakpoint's range; the layout only steps to a new
  * snapshot the moment a breakpoint boundary is crossed. Every position
- * below is stored as a [valueAt1200, valueAt1440] pair; `stepVars()` exposes
- * both as CSS custom properties, and the stylesheet reads `--l0`/`--t0` by
- * default and switches to `--l1`/`--t1` inside the `min-width: 1440px`
- * container query — a snap, not a scroll-linked interpolation.
+ * below is stored as a [valueAt1200, valueAt1440, valueAt1600] triple;
+ * `stepVars()` exposes all three as CSS custom properties, and the
+ * stylesheet reads `--l0`/`--t0` by default, switching to `--l1`/`--t1` at
+ * `min-width: 1440px` and `--l2`/`--t2` at `min-width: 1600px` — a snap,
+ * not a scroll-linked interpolation. Elements that don't move at a given
+ * step simply repeat the previous value.
  */
-type Interp = [number, number]
+type Interp = [number, number, number]
+type Interp2 = [number, number]
 
 function stepVars(left: Interp, top: Interp): Record<string, string> {
   return {
     '--l0': `${left[0]}px`,
     '--l1': `${left[1]}px`,
+    '--l2': `${left[2]}px`,
     '--t0': `${top[0]}px`,
     '--t1': `${top[1]}px`,
+    '--t2': `${top[2]}px`,
   }
 }
 
-function widthVars(width: Interp): Record<string, string> {
+function widthVars(width: Interp2): Record<string, string> {
   return {
     '--w0': `${width[0]}px`,
     '--w1': `${width[1]}px`,
@@ -42,7 +47,7 @@ interface Feature {
   ctaLabel: string
   left: Interp
   top: Interp
-  width: Interp
+  width: Interp2
 }
 
 const features: Feature[] = [
@@ -51,8 +56,8 @@ const features: Feature[] = [
     title: 'Direct sourcing',
     description: 'We vinden en benaderen professionals die niet vanzelf bij vacatures uitkomen.',
     ctaLabel: 'Meer bereik',
-    left: [453, 429],
-    top: [146, 132],
+    left: [453, 429, 429],
+    top: [146, 132, 132],
     width: [360, 360],
   },
   {
@@ -60,8 +65,8 @@ const features: Feature[] = [
     title: 'Sourcingtechnologie',
     description: 'Technologie maakt bereik, context en opvolging schaalbaar.',
     ctaLabel: 'Betere opvolging',
-    left: [815, 929],
-    top: [394, 394],
+    left: [815, 929, 824],
+    top: [394, 394, 334],
     width: [333, 333],
   },
   {
@@ -69,8 +74,8 @@ const features: Feature[] = [
     title: 'Talentpooling & nurturing',
     description: 'Relevant talent blijft dichtbij, ook na de search.',
     ctaLabel: 'Slimmer werken',
-    left: [478, 445],
-    top: [706, 706],
+    left: [478, 445, 445],
+    top: [706, 706, 706],
     // The 1200-1439 source has no fixed width on this one card — Figma
     // reports its rendered frame at 287px (hugging a 223px text column +
     // 32px padding each side). Only the 1440 snapshot fixes it at 360px.
@@ -81,8 +86,8 @@ const features: Feature[] = [
     title: 'Data & Talent Intelligence',
     description: 'Iedere search levert data en inzichten voor de volgende search.',
     ctaLabel: 'Meer inzicht',
-    left: [80, 80],
-    top: [388, 388],
+    left: [80, 80, 80],
+    top: [388, 388, 388],
     width: [333, 333],
   },
 ]
@@ -95,10 +100,10 @@ interface Bubble {
 }
 
 const bubbles: Bubble[] = [
-  { id: 'verbinden', text: 'Verbinden met de juiste mensen', left: [841, 955], top: [165, 165] },
-  { id: 'vandaag', text: 'Vandaag contact, morgen impact', left: [860, 974], top: [782, 782] },
-  // Per Figma's own metadata this one doesn't shift between 1200 and 1440 at all.
-  { id: 'van-data', text: 'Van data naar nieuwe mensen', left: [62, 62], top: [776, 776] },
+  { id: 'verbinden', text: 'Verbinden met de juiste mensen', left: [841, 955, 850], top: [165, 165, 105] },
+  { id: 'vandaag', text: 'Vandaag contact, morgen impact', left: [860, 974, 869], top: [782, 782, 722] },
+  // Per Figma's own metadata this one doesn't shift at any breakpoint.
+  { id: 'van-data', text: 'Van data naar nieuwe mensen', left: [62, 62, 62], top: [776, 776, 776] },
 ]
 
 interface Arrow {
@@ -113,14 +118,13 @@ interface Arrow {
  * Small curved accents pointing from an annotation bubble toward its photo
  * cluster. Centers taken directly from Figma's own rotated bounding-box
  * metadata (x + width/2, y + height/2) — van-data and verbinden live inside
- * the "Connector - Left" group and, per that metadata, don't shift between
- * 1200 and 1440 at all; only vandaag (root-level) shifts, by the same
- * uniform +114px as the other root-level elements.
+ * the "Connector - Left" group and never shift at any breakpoint; only
+ * vandaag (root-level) moves, matching the other root-level elements.
  */
 const arrows: Arrow[] = [
-  { id: 'van-data', cx: [207.474, 207.474], cy: [713.25, 713.25], rotation: 0 },
-  { id: 'verbinden', cx: [912.895, 912.895], cy: [343.479, 343.479], rotation: -152.13 },
-  { id: 'vandaag', cx: [876.033, 990.033], cy: [938.156, 938.156], rotation: -120 },
+  { id: 'van-data', cx: [207.474, 207.474, 207.474], cy: [713.25, 713.25, 713.25], rotation: 0 },
+  { id: 'verbinden', cx: [912.895, 912.895, 912.895], cy: [343.479, 343.479, 343.479], rotation: -152.13 },
+  { id: 'vandaag', cx: [876.033, 990.033, 885.033], cy: [938.156, 938.156, 878.156], rotation: -120 },
 ]
 
 const ARROW_PATH =
@@ -162,26 +166,26 @@ function desktopPhoto(id: string, left: Interp, top: Interp, width: number, heig
 }
 
 /**
- * Canvas-absolute pixel positions at the 1200 and 1440 reference widths,
- * taken directly from Figma's metadata. Photos 3/13/2/11/16/12 live inside
- * "Connector - Left" and, per that metadata, don't shift between 1200 and
- * 1440 at all; the rest are root-level and shift by the uniform +114px.
+ * Canvas-absolute pixel positions at the 1200, 1440 and 1600 reference
+ * widths, taken directly from Figma's metadata. Photos 3/13/2/11/16/12
+ * live inside "Connector - Left" and never shift at any breakpoint; the
+ * rest are root-level — unshifted 1200->1440, then -105/-60 at 1600.
  */
 const desktopPhotos: Photo[] = [
-  desktopPhoto('2', [314, 314], [569, 569], 76, 70),
-  desktopPhoto('3', [813, 813], [287, 287], 61, 67),
-  desktopPhoto('4', [249, 363], [227, 227], 92, 101),
-  desktopPhoto('5', [870, 984], [665, 665], 45, 50),
-  desktopPhoto('6', [915, 1029], [690, 690], 81, 89),
-  desktopPhoto('8', [995, 1109], [621, 621], 55, 61),
-  desktopPhoto('9', [234, 348], [181, 181], 48.892, 54),
-  desktopPhoto('10', [185, 299], [221, 221], 40, 44),
-  desktopPhoto('11', [214, 214], [548, 548], 98, 91),
-  desktopPhoto('12', [763, 763], [634, 634], 50, 55),
-  desktopPhoto('13', [888, 888], [280, 280], 89, 98),
-  desktopPhoto('14', [372, 486], [624, 624], 44, 49),
-  desktopPhoto('15', [742, 856], [325, 325], 49, 54),
-  desktopPhoto('16', [229, 229], [689, 689], 74.914, 69),
+  desktopPhoto('2', [314, 314, 314], [569, 569, 569], 76, 70),
+  desktopPhoto('3', [813, 813, 813], [287, 287, 287], 61, 67),
+  desktopPhoto('4', [249, 363, 258], [227, 227, 167], 92, 101),
+  desktopPhoto('5', [870, 984, 879], [665, 665, 605], 45, 50),
+  desktopPhoto('6', [915, 1029, 924], [690, 690, 630], 81, 89),
+  desktopPhoto('8', [995, 1109, 1004], [621, 621, 561], 55, 61),
+  desktopPhoto('9', [234, 348, 243], [181, 181, 121], 48.892, 54),
+  desktopPhoto('10', [185, 299, 194], [221, 221, 161], 40, 44),
+  desktopPhoto('11', [214, 214, 214], [548, 548, 548], 98, 91),
+  desktopPhoto('12', [763, 763, 763], [634, 634, 634], 50, 55),
+  desktopPhoto('13', [888, 888, 888], [280, 280, 280], 89, 98),
+  desktopPhoto('14', [372, 486, 381], [624, 624, 564], 44, 49),
+  desktopPhoto('15', [742, 856, 751], [325, 325, 265], 49, 54),
+  desktopPhoto('16', [229, 229, 229], [689, 689, 689], 74.914, 69),
 ]
 
 interface MobilePhoto {
@@ -248,12 +252,12 @@ const DOT_PATHS = [
 ]
 
 /** Box (connectors + hub ring) canvas-absolute position; the box's own 1000x1000 content is fixed-size. */
-const connectorsBoxLeft: Interp = [-29, 85]
-const connectorsBoxTop: Interp = [6, 6]
+const connectorsBoxLeft: Interp = [-29, 85, -20]
+const connectorsBoxTop: Interp = [6, 6, -54]
 
 /** Hub circle canvas-absolute position; size is fixed (324x324) at every width. */
-const circleLeft: Interp = [435, 549]
-const circleTop: Interp = [341, 341]
+const circleLeft: Interp = [435, 549, 444]
+const circleTop: Interp = [341, 341, 281]
 
 const emit = defineEmits<{
   'cta-click': [id: string]
@@ -660,18 +664,33 @@ onMounted(() => {
   }
 }
 
-/* ---------- Extra-wide (>=1600): CTA panel becomes a side panel ---------- */
+/* ---------- Extra-wide (>=1600): CTA panel becomes a side panel, everything steps again ---------- */
 @container ecosystem (min-width: 1600px) {
   .ecosystem__wide {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 48px;
+    gap: 75px;
+  }
+
+  /* Content shifts left at this step (see --l2/--t2 below), so the diagram's own box needs less width than the 1440 snapshot. */
+  .ecosystem__diagram {
+    width: 1157px;
+  }
+
+  .ecosystem__connectors,
+  .ecosystem__wide .ecosystem__hub-copy,
+  .ecosystem__card-slot,
+  .ecosystem__bubble,
+  .ecosystem__arrow,
+  .ecosystem__wide .ecosystem__photo {
+    left: var(--l2);
+    top: var(--t2);
   }
 
   .ecosystem__cta-slot--wide {
-    width: 280px;
-    max-width: 280px;
+    width: 302px;
+    max-width: 302px;
     height: auto;
     align-self: center;
   }
