@@ -68,6 +68,24 @@ const bubbles: Bubble[] = [
   { id: 'van-data', text: 'Van data naar nieuwe mensen', left: 10.208, top: 71.091 },
 ]
 
+interface Arrow {
+  id: string
+  /** Center point, as a % of the design canvas — the arrow rotates around its own center. */
+  cx: number
+  cy: number
+  rotation: number
+}
+
+/** Small curved accents pointing from an annotation bubble toward its photo cluster. */
+const arrows: Arrow[] = [
+  { id: 'van-data', cx: 20.311, cy: 65.386, rotation: 0 },
+  { id: 'verbinden', cx: 66.048, cy: 22.408, rotation: -152.13 },
+  { id: 'vandaag', cx: 66.914, cy: 77.096, rotation: -120 },
+]
+
+const ARROW_PATH =
+  'M1.86811 93.7674C1.96522 94.3111 2.48469 94.6731 3.02837 94.576C3.57205 94.4788 3.93406 93.9594 3.83694 93.4157L2.85252 93.5915L1.86811 93.7674ZM53.948 5.09154L43.5842 0L44.3567 11.5211L53.948 5.09154ZM2.85252 93.5915L3.83694 93.4157C1.37605 79.6394 0.707039 59.4088 6.18548 41.8901C11.6496 24.4171 23.1728 9.75654 45.1009 6.68439L44.9622 5.69407L44.8234 4.70374C21.9056 7.91454 9.89522 23.3263 4.27664 41.2932C-1.32766 59.2143 -0.628558 79.7909 1.86811 93.7674L2.85252 93.5915Z'
+
 interface Photo {
   id: string
   left: number
@@ -311,6 +329,21 @@ onMounted(() => {
         >
           {{ bubble.text }}
         </p>
+
+        <svg
+          v-for="arrow in arrows"
+          :key="arrow.id"
+          class="ecosystem__arrow"
+          viewBox="0 0 53.948 94.5917"
+          aria-hidden="true"
+          :style="{
+            left: arrow.cx + '%',
+            top: arrow.cy + '%',
+            transform: `translate(-50%, -50%) rotate(${arrow.rotation}deg)`,
+          }"
+        >
+          <path :d="ARROW_PATH" />
+        </svg>
       </div>
 
       <div class="ecosystem__cta-slot ecosystem__cta-slot--wide">
@@ -477,8 +510,16 @@ onMounted(() => {
 
   .ecosystem__hub-copy,
   .ecosystem__card-slot,
-  .ecosystem__bubble {
+  .ecosystem__bubble,
+  .ecosystem__arrow {
     position: absolute;
+  }
+
+  .ecosystem__arrow {
+    width: 3.677%;
+    height: 8.045%;
+    fill: #000;
+    pointer-events: none;
   }
 
   .ecosystem__bubble {
