@@ -71,10 +71,10 @@ const features: Feature[] = [
     ctaLabel: 'Slimmer werken',
     left: [478, 445],
     top: [706, 706],
-    // The 1200-1439 source has no fixed width on this one card — it hugs a
-    // 223px text column instead (223px content + 64px padding + 4px border,
-    // border-box). Only the 1440 snapshot fixes it at an explicit 360px.
-    width: [291, 360],
+    // The 1200-1439 source has no fixed width on this one card — Figma
+    // reports its rendered frame at 287px (hugging a 223px text column +
+    // 32px padding each side). Only the 1440 snapshot fixes it at 360px.
+    width: [287, 360],
   },
   {
     id: 'data-talent-intelligence',
@@ -97,7 +97,8 @@ interface Bubble {
 const bubbles: Bubble[] = [
   { id: 'verbinden', text: 'Verbinden met de juiste mensen', left: [841, 955], top: [165, 165] },
   { id: 'vandaag', text: 'Vandaag contact, morgen impact', left: [860, 974], top: [782, 782] },
-  { id: 'van-data', text: 'Van data naar nieuwe mensen', left: [33, 147], top: [782, 782] },
+  // Per Figma's own metadata this one doesn't shift between 1200 and 1440 at all.
+  { id: 'van-data', text: 'Van data naar nieuwe mensen', left: [62, 62], top: [776, 776] },
 ]
 
 interface Arrow {
@@ -108,11 +109,18 @@ interface Arrow {
   rotation: number
 }
 
-/** Small curved accents pointing from an annotation bubble toward its photo cluster. */
+/**
+ * Small curved accents pointing from an annotation bubble toward its photo
+ * cluster. Centers taken directly from Figma's own rotated bounding-box
+ * metadata (x + width/2, y + height/2) — van-data and verbinden live inside
+ * the "Connector - Left" group and, per that metadata, don't shift between
+ * 1200 and 1440 at all; only vandaag (root-level) shifts, by the same
+ * uniform +114px as the other root-level elements.
+ */
 const arrows: Arrow[] = [
-  { id: 'van-data', cx: [178.474, 292.474], cy: [719.25, 719.25], rotation: 0 },
-  { id: 'verbinden', cx: [837.087, 951.087], cy: [246.493, 246.493], rotation: -152.13 },
-  { id: 'vandaag', cx: [849.559, 963.559], cy: [848.052, 848.052], rotation: -120 },
+  { id: 'van-data', cx: [207.474, 207.474], cy: [713.25, 713.25], rotation: 0 },
+  { id: 'verbinden', cx: [912.895, 912.895], cy: [343.479, 343.479], rotation: -152.13 },
+  { id: 'vandaag', cx: [876.033, 990.033], cy: [938.156, 938.156], rotation: -120 },
 ]
 
 const ARROW_PATH =
@@ -153,22 +161,27 @@ function desktopPhoto(id: string, left: Interp, top: Interp, width: number, heig
   return { id, left, top, width, height, cropLeft, cropTop, cropWidth, cropHeight }
 }
 
-/** Canvas-absolute pixel positions at the 1200 and 1440 reference widths. */
+/**
+ * Canvas-absolute pixel positions at the 1200 and 1440 reference widths,
+ * taken directly from Figma's metadata. Photos 3/13/2/11/16/12 live inside
+ * "Connector - Left" and, per that metadata, don't shift between 1200 and
+ * 1440 at all; the rest are root-level and shift by the uniform +114px.
+ */
 const desktopPhotos: Photo[] = [
-  desktopPhoto('2', [285, 399], [575, 575], 76, 70),
-  desktopPhoto('3', [784, 898], [293, 293], 61, 67),
+  desktopPhoto('2', [314, 314], [569, 569], 76, 70),
+  desktopPhoto('3', [813, 813], [287, 287], 61, 67),
   desktopPhoto('4', [249, 363], [227, 227], 92, 101),
   desktopPhoto('5', [870, 984], [665, 665], 45, 50),
   desktopPhoto('6', [915, 1029], [690, 690], 81, 89),
   desktopPhoto('8', [995, 1109], [621, 621], 55, 61),
   desktopPhoto('9', [234, 348], [181, 181], 48.892, 54),
   desktopPhoto('10', [185, 299], [221, 221], 40, 44),
-  desktopPhoto('11', [185, 299], [554, 554], 98, 91),
-  desktopPhoto('12', [734, 848], [640, 640], 50, 55),
-  desktopPhoto('13', [859, 973], [286, 286], 89, 98),
+  desktopPhoto('11', [214, 214], [548, 548], 98, 91),
+  desktopPhoto('12', [763, 763], [634, 634], 50, 55),
+  desktopPhoto('13', [888, 888], [280, 280], 89, 98),
   desktopPhoto('14', [372, 486], [624, 624], 44, 49),
   desktopPhoto('15', [742, 856], [325, 325], 49, 54),
-  desktopPhoto('16', [200, 314], [695, 695], 74.914, 69),
+  desktopPhoto('16', [229, 229], [689, 689], 74.914, 69),
 ]
 
 interface MobilePhoto {
@@ -304,14 +317,17 @@ onMounted(() => {
             stroke="#F58C54"
             stroke-width="2"
           />
-          <path
-            v-for="d in PHOTO_TICKS"
-            :key="d"
-            :d="d"
-            fill="none"
-            stroke="#F5996B"
-            stroke-width="1.5"
-          />
+          <!-- Figma's "Photo Connectors" group sits 4px below "Ecosystem Connectors" (y=10 vs y=6) despite sharing the same x, so its ticks get their own offset. -->
+          <g transform="translate(0, 4)">
+            <path
+              v-for="d in PHOTO_TICKS"
+              :key="d"
+              :d="d"
+              fill="none"
+              stroke="#F5996B"
+              stroke-width="1.5"
+            />
+          </g>
 
           <template v-if="allowMotion">
             <g v-for="(d, pathIndex) in DOT_PATHS" :key="d">
