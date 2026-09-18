@@ -1,4 +1,7 @@
 <template>
+  <div class="design-900" style="width: 100%; height: 820px; position: relative; background-color: white">
+    <RocketSourcersEcosystemDesign900 />
+  </div>
   <div class="design-1200" style="width: 100%; height: 975px; position: relative; background-color: white">
     <RocketSourcersEcosystemDesign1200 />
   </div>

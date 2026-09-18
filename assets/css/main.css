@@ -8,21 +8,78 @@ body {
   margin: 0;
 }
 
+/*
+ * The ported Figma Make markup uses Tailwind arbitrary font-family classes
+ * with literal names like font-['Inter:Regular',sans-serif] — these only
+ * resolve to actual Inter if a face is registered under that exact name.
+ * Figma's own build aliases them to https://static.figma.com/font/Inter_1;
+ * we alias them to Google's hosted Inter Variable instead (same visual
+ * weights, stable public CDN) so text reflows identically to the live site.
+ */
+@font-face {
+  font-family: 'Inter:Regular';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter:Medium';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter:Semi Bold';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter:Bold';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter:Black';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter:Italic';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v20/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc2dtRipWFsevceSGM.woff2') format('woff2');
+}
+
 @keyframes personFade {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.08; }
 }
 
-.design-1200 { display: block; }
+.design-900  { display: block; }
+.design-1200 { display: none; }
 .design-1440 { display: none; }
 .design-1800 { display: none; }
 
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .design-900  { display: none; }
+  .design-1200 { display: block; }
+}
+
 @media (min-width: 1440px) and (max-width: 1799px) {
-  .design-1200 { display: none; }
+  .design-900  { display: none; }
   .design-1440 { display: block; }
 }
 
 @media (min-width: 1800px) {
-  .design-1200 { display: none; }
+  .design-900  { display: none; }
   .design-1800 { display: block; }
 }
